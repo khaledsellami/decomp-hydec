@@ -4,6 +4,7 @@ import numpy as np
 from sklearn.preprocessing import OneHotEncoder
 
 from .abstractAnalysis import AbstractAnalysis
+from .similarity import cosine_similarity
 
 
 class TfidfAnalysis(AbstractAnalysis):
@@ -28,7 +29,10 @@ class TfidfAnalysis(AbstractAnalysis):
             features = aggregation_map.T.dot(self.features)/aggregation_map.sum(axis=0).reshape(-1,1)
         elif self.aggregation == "sum":
             features = aggregation_map.T.dot(self.features)
+        else:
+            raise ValueError("Unsupported aggregation method \"{}\"".format(self.aggregation))
         return features, aggregation_map
 
     def calculate_similarity(self, features: np.ndarray):
-        return features.dot(features.T)
+        return cosine_similarity(features)
+        #return features.dot(features.T)

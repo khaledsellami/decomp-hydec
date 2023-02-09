@@ -42,7 +42,9 @@ class AbstractAnalysis:
             features = self.features
             aggregation_map = np.identity(len(self.support_map))
         sim = self.calculate_similarity(features)
-        db = clustering_function(sim)
+        dist = 1 - sim
+        dist[dist < 0] = 0
+        db = clustering_function(dist)
         clusters = db.labels_.copy()
         index_set = set(clusters)
         if -1 in index_set:

@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def generate_callsim_matrix(X):
+def call_similarity(X):
     # incoming calls vector
     calls_inc = X.sum(axis=0)
     # change to inf so that we get 0 if we divide by this vector
@@ -16,7 +16,7 @@ def generate_callsim_matrix(X):
     return sim
 
 
-def generate_cousage_matrix(X):
+def cousage_similarity(X):
     X = (X.T != 0)
     sim = np.zeros((X.shape[0], X.shape[0]))
     for i in range(X.shape[0]):
@@ -28,3 +28,10 @@ def generate_cousage_matrix(X):
             else:
                 sim[i, j] = inter / union
     return sim
+
+
+def cosine_similarity(X):
+    dot = X.dot(X.T)
+    diagonal = np.sqrt(dot.diagonal().reshape(-1, 1))
+    norms = diagonal.dot(diagonal.T)
+    return dot / norms

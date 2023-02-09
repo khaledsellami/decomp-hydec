@@ -4,11 +4,11 @@ import numpy as np
 from sklearn.preprocessing import OneHotEncoder
 
 from .abstractAnalysis import AbstractAnalysis
-from .similarity import generate_callsim_matrix, generate_cousage_matrix
+from .similarity import call_similarity, cousage_similarity
 
 
 class DependencyAnalysis(AbstractAnalysis):
-    SIMILARITY_MAP = {"call": generate_callsim_matrix, "cousage": generate_cousage_matrix}
+    SIMILARITY_MAP = {"call": call_similarity, "cousage": cousage_similarity}
 
     def __init__(self, features: np.ndarray, atoms: List, supported_atoms: List, similarity="call"):
         if similarity not in self.SIMILARITY_MAP:
