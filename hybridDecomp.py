@@ -35,7 +35,7 @@ class HybridDecomp:
         for i in range(self.max_iterations):
             for analysis, epsilon in zip(self.analysis_pipeline, self.epsilons):
                 clustering_function = \
-                    lambda sim: DBSCAN(eps=epsilon, min_samples=self.min_samples, metric="precomputed").fit(1 - sim)
+                    lambda dist: DBSCAN(eps=epsilon, min_samples=self.min_samples, metric="precomputed").fit(dist)
                 clusters = analysis.generate_clusters(clustering_function, clusters)
                 layers.append(clusters)
             if prev_clusters is not None and clusters == prev_clusters:
