@@ -1,11 +1,24 @@
+from typing import Tuple, List
+
 from sklearn.preprocessing import OneHotEncoder
 import numpy as np
 
 
-def process_outliers(microservices, features_list, exclude_outliers=True, both_axes=True):
+def process_outliers(microservices: np.ndarray,
+                     features_list: List[np.ndarray] = None,
+                     exclude_outliers: bool = True,
+                     both_axes: bool = True) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Excludes outlier classes/methods from list of microservices and related features and increments the index otherwise.
+    :param microservices: microservices index for each class/method (List[int])
+    :param features_list: features that are used for evaluation
+    :param exclude_outliers: True to exclude outliers (denoted by -1)
+    :param both_axes: True if features where both axes represent the classes/methods
+    :return: processed microservices array and features array
+    """
     if exclude_outliers:
         include = microservices != -1
-        if len(features_list) > 0:
+        if features_list is not None and len(features_list) > 0:
             if both_axes:
                 features_list = [features[include][:, include] for features in features_list]
             else:
@@ -17,7 +30,16 @@ def process_outliers(microservices, features_list, exclude_outliers=True, both_a
     return microservices, features_list
 
 
-def vectorized_modularity(microservices, features, exclude_outliers=True):
+def vectorized_modularity(microservices: np.ndarray,
+                          features: np.ndarray,
+                          exclude_outliers: bool = True) -> float:
+    """
+    One hot encodes the input microservice array and measures the modularity.
+    :param microservices: microservices index for each class/method (List[int])
+    :param features: features that are used for evaluation
+    :param exclude_outliers: True to exclude outliers (denoted by -1)
+    :return: modularity value
+    """
     # TODO: Optimize further
     microservices, f = process_outliers(microservices, [features], exclude_outliers)
     features = f[0]
@@ -28,7 +50,13 @@ def vectorized_modularity(microservices, features, exclude_outliers=True):
     return preprocessed_modularity(microservices, features)
 
 
-def preprocessed_modularity(microservices, features):
+def preprocessed_modularity(microservices: np.ndarray, features: np.ndarray) -> float:
+    """
+    Calculate the modular quality for the given decomposition and features.
+    :param microservices: microservices index for each class/method (one-hot encoded)
+    :param features: features that are used for evaluation
+    :return: modularity value
+    """
     n_microservices = microservices.shape[1]
     if n_microservices < 2:
         return 0
@@ -41,12 +69,28 @@ def preprocessed_modularity(microservices, features):
     return cohesion / n_microservices - coupling / (n_microservices * (n_microservices - 1))
 
 
-def non_extreme_distribution(microservices, s_min=5, s_max=19, exclude_outliers=True):
+def non_extreme_distribution(microservices: np.ndarray, s_min: int = 5, s_max: int = 19,
+                             exclude_outliers: bool = True) -> float:
+    """
+    Process outliers and calculate the Non-Extreme Distribution of the given decomposition.
+    :param microservices: microservices index for each class/method (List[int])
+    :param s_min: minimum threshold
+    :param s_max: maximum threshold
+    :param exclude_outliers: True to exclude outliers (denoted by -1)
+    :return: Non-Extreme Distribution value
+    """
     microservices, _ = process_outliers(microservices, [], exclude_outliers)
     return preprocessed_non_extreme_distribution(microservices, s_min, s_max)
 
 
-def preprocessed_non_extreme_distribution(microservices, s_min=5, s_max=19):
+def preprocessed_non_extreme_distribution(microservices: np.ndarray, s_min: int = 5, s_max: int = 19) -> float:
+    """
+    Calculate the Non-Extreme Distribution of the given decomposition.
+    :param microservices: microservices index for each class/method (List[int])
+    :param s_min: minimum threshold
+    :param s_max: maximum threshold
+    :return: Non-Extreme Distribution value
+    """
     unique, counts = np.unique(microservices, return_counts=True)
     n_microservices = len(unique)
     if n_microservices < 1:
@@ -56,11 +100,24 @@ def preprocessed_non_extreme_distribution(microservices, s_min=5, s_max=19):
     return ned
 
 
-def coverage(microservices):
+def coverage(microservices: np.ndarray) -> float:
+    """
+    Calculate the class/method coverage in the decomposition
+    :param microservices: microservices index for each class/method (List[int]) where outliers are referred by -1
+    :return: coverage value
+    """
     return (microservices != -1).sum() / len(microservices)
 
 
-def inter_call_percentage(microservices, interactions, exclude_outliers=True):
+def inter_call_percentage(microservices: np.ndarray, interactions: np.ndarray,
+                          exclude_outliers: bool = True) -> float:
+    """
+    One hot encode the input microservice array and measure the inter-call percentage.
+    :param microservices: microservices index for each class/method (List[int])
+    :param interactions: class/method interaction matrix
+    :param exclude_outliers: True to exclude outliers (denoted by -1)
+    :return: inter-call percentage value
+    """
     microservices, f = process_outliers(microservices, [interactions], exclude_outliers)
     interactions = f[0]
     n_microservices = len(np.unique(microservices))
@@ -70,7 +127,13 @@ def inter_call_percentage(microservices, interactions, exclude_outliers=True):
     return preprocessed_inter_call_percentage(microservices, interactions)
 
 
-def preprocessed_inter_call_percentage(microservices, interactions):
+def preprocessed_inter_call_percentage(microservices: np.ndarray, interactions: np.ndarray) -> float:
+    """
+    Calculate the inter-call percentage.
+    :param microservices: microservices index for each class/method (one-hot encoded)
+    :param interactions: class/method interaction matrix
+    :return: inter-call percentage value
+    """
     n_microservices = microservices.shape[1]
     if n_microservices < 1:
         return 1
@@ -85,7 +148,15 @@ def preprocessed_inter_call_percentage(microservices, interactions):
         return inter/total
 
 
-def interface_number(microservices, interactions, exclude_outliers=True):
+def interface_number(microservices: np.ndarray, interactions: np.ndarray,
+                     exclude_outliers: bool = True) -> float:
+    """
+    One hot encode the input microservice array and measure the number of interface classes/methods.
+    :param microservices: microservices index for each class/method (List[int])
+    :param interactions: class/method interaction matrix
+    :param exclude_outliers: True to exclude outliers (denoted by -1)
+    :return: Interface number
+    """
     microservices, f = process_outliers(microservices, [interactions], exclude_outliers)
     interactions = f[0]
     n_microservices = len(np.unique(microservices))
@@ -95,13 +166,32 @@ def interface_number(microservices, interactions, exclude_outliers=True):
     return preprocessed_interface_number(microservices, interactions)
 
 
-def preprocessed_interface_number(microservices, interactions):
+def preprocessed_interface_number(microservices: np.ndarray, interactions: np.ndarray) -> float:
+    """
+    Calculate the number of interface classes/methods.
+    :param microservices: microservices index for each class/method (one-hot encoded)
+    :param interactions: class/method interaction matrix
+    :return: Interface number
+    """
     n_microservices = microservices.shape[1]
     if n_microservices < 1:
         return interactions.shape[0]
     interfaces = microservices.transpose().dot(interactions)
     interfaces = interfaces * (1 - microservices.transpose())
     return (interfaces.sum(0) > 0).sum() / n_microservices
+
+
+def microservices_number(microservices: np.ndarray, exclude_outliers: bool = True) -> int:
+    """
+    Calculate the number of microservices.
+    :param microservices: microservices index for each class/method (List[int])
+    :param exclude_outliers: True to exclude outliers (denoted by -1)
+    :return: number of microservices in the decomposition
+    """
+    n_micro = len(np.unique(microservices)) - np.any(microservices == -1)
+    if not exclude_outliers:
+        n_micro += np.sum(microservices == -1)
+    return n_micro
 
 
 def precision_and_recall(truth_ind, inferred_ind, v2=True):
