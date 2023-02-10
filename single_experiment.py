@@ -2,6 +2,8 @@ import os
 import json
 
 import numpy as np
+import pandas as pd
+from sklearn.feature_extraction.text import CountVectorizer
 
 from hybridDecomp import HybridDecomp
 from analysis.dependencyAnalysis import DependencyAnalysis
@@ -12,6 +14,7 @@ from analysis.wordEmbeddingAnalysis import WordEmbeddingAnalysis
 from analysis.embeddingModel import EmbeddingModel
 from user_config import DATA_PATH, DYN_DATA_PATH
 from utils.logTraceParser import LogTraceParcer
+from evaluation.evaluationHandler import EvaluationHandler
 
 
 if __name__ == "__main__":
@@ -20,12 +23,14 @@ if __name__ == "__main__":
     OUTPUT_PATH = os.path.join(os.path.curdir, "logs")
 
     # Initialize structural analysis
+    # print("Initializing structural analysis")
     # with open(os.path.join(APP_DATA_PATH, APP.lower(), "structural_data", "class_names.json"), "r") as f:
     #     str_classes = json.load(f)
     # features = np.load(os.path.join(APP_DATA_PATH, APP.lower(), "structural_data", "class_calls.npy"))
     # structural_analysis = DependencyAnalysis(features, str_classes, str_classes)
 
     # # Initialize semantic analysis
+    # print("Initializing semantic analysis")
     # with open(os.path.join(APP_DATA_PATH, APP.lower(), "semantic_data", "class_names.json"), "r") as f:
     #     sem_classes = json.load(f)
     # features = np.load(os.path.join(APP_DATA_PATH, APP.lower(), "semantic_data", "class_tfidf.npy"))
@@ -34,19 +39,22 @@ if __name__ == "__main__":
     # semantic_analysis = TfidfAnalysis(features, str_classes, str_classes, class_tokens)
 
     # # combine structural and semantic analysis
+    # print("Combining structural and semantic analysis")
     # static_analysis = SumAnalysis([structural_analysis, semantic_analysis])
 
     # Initialize semantic analysis with bert
-    with open(os.path.join(APP_DATA_PATH, APP.lower(), "semantic_data", "class_names.json"), "r") as f:
-        sem_classes = json.load(f)
-    features = np.load(os.path.join(APP_DATA_PATH, APP.lower(), "semantic_data", "class_tfidf.npy"))
-    with open(os.path.join(APP_DATA_PATH, APP.lower(), "static_analysis_results", "typeData.json"), "r") as f:
-        class_text = [c["textAndNames"] for c in json.load(f)]
-    embeddings = np.load(os.path.join(APP_DATA_PATH, APP.lower(), "embeddings.npy"))
-    bert_analysis = BertAnalysis(class_text, sem_classes, sem_classes, aggregation="mean", embeddings=embeddings)
+    # print("Initializing semantic analysis with bert")
+    # with open(os.path.join(APP_DATA_PATH, APP.lower(), "semantic_data", "class_names.json"), "r") as f:
+    #     sem_classes = json.load(f)
+    # features = np.load(os.path.join(APP_DATA_PATH, APP.lower(), "semantic_data", "class_tfidf.npy"))
+    # with open(os.path.join(APP_DATA_PATH, APP.lower(), "static_analysis_results", "typeData.json"), "r") as f:
+    #     class_text = [c["textAndNames"] for c in json.load(f)]
+    # embeddings = np.load(os.path.join(APP_DATA_PATH, APP.lower(), "embeddings.npy"))
+    # bert_analysis = BertAnalysis(class_text, sem_classes, sem_classes, aggregation="mean", embeddings=embeddings)
     # np.save(os.path.join(APP_DATA_PATH, APP.lower(), "embeddings.npy"),bert_analysis.embeddings)
 
     # Initialize semantic analysis with fastext
+    print("Initializing semantic analysis with fastext")
     with open(os.path.join(APP_DATA_PATH, APP.lower(), "semantic_data", "class_names.json"), "r") as f:
         sem_classes = json.load(f)
     features = np.load(os.path.join(APP_DATA_PATH, APP.lower(), "semantic_data", "class_tfidf.npy"))
@@ -58,6 +66,7 @@ if __name__ == "__main__":
     emb_analysis = WordEmbeddingAnalysis(class_text, embedding_model, sem_classes, sem_classes)
 
     # Initialize dynamic analysis
+    print("Initializing dynamic analysis")
     dynamic_analysis_data = DYN_DATA_PATH
     dyn_analysis = LogTraceParcer(dynamic_analysis_data)
     short_names = [c.split(".")[-1] for c in sem_classes]
@@ -66,9 +75,27 @@ if __name__ == "__main__":
     dynamic_analysis = DependencyAnalysis(dyn_analysis.class_relations, short_names,
                                           [i.split("::")[-1] for i in dyn_analysis.class_names])
 
+    # Initialize evaluation class
+    print("Initializing evaluation class")
+    threshold = 50
+    structural_data_path = os.path.join(APP_DATA_PATH, APP.lower(), "structural_data", "interactions.npy")
+    #semantic_data_path = os.path.join(APP_DATA_PATH, APP.lower(), "semantic_data", "class_tfidf.npy")
+    with open(os.path.join(APP_DATA_PATH, APP.lower(), "semantic_data", "class_words.json"), "r") as f:
+        class_words = json.load(f)
+    semantic_data = CountVectorizer().fit_transform([" ".join(i) for i in class_words]).toarray()
+    semantic_data = semantic_data[:, semantic_data.sum(axis=0) < threshold]
+    semantic_data = semantic_data.dot(semantic_data.transpose())
+    eval_handler = EvaluationHandler(structural_data_path, semantic_data)
+
     # Create the clustering object
-    hybrid_decomp = HybridDecomp([dynamic_analysis, bert_analysis], sem_classes, [0.65, 0.05])
+    print("Starting the clustering")
+    hybrid_decomp = HybridDecomp([emb_analysis], sem_classes, [0.15])
+    print("Finished the clustering")
+    all_results = list()
     layers = hybrid_decomp.cluster()
     for i, layer in enumerate(layers):
-        print(i, layer)
+        results = eval_handler.evaluate(layer)
+        all_results.append(results)
+        print(i, layer, results.values())
+    print(results.keys())
 
