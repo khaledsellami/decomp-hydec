@@ -19,10 +19,12 @@ def process_outliers(microservices: np.ndarray,
     if exclude_outliers:
         include = microservices != -1
         if features_list is not None and len(features_list) > 0:
-            if both_axes:
-                features_list = [features[include][:, include] for features in features_list]
-            else:
-                features_list = [features[include] for features in features_list]
+            new_features_list = list()
+            for features in features_list:
+                if both_axes and features.shape[0] == features.shape[1]:
+                    new_features_list.append(features[include][:, include])
+                else:
+                    new_features_list.append(features[include])
         microservices = microservices[include]
     else:
         x = microservices == -1
@@ -137,7 +139,7 @@ def preprocessed_inter_call_percentage(microservices: np.ndarray, interactions: 
     n_microservices = microservices.shape[1]
     if n_microservices < 1:
         return 1
-    interactions += 1
+    interactions = interactions + 1
     total = np.log(interactions)
     total = microservices.transpose().dot(total).dot(microservices)
     inter = total.sum() - total.diagonal().sum()
