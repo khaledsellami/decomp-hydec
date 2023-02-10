@@ -1,5 +1,7 @@
 import os
 import json
+import datetime
+import time
 
 import numpy as np
 import pandas as pd
@@ -20,7 +22,23 @@ from evaluation.evaluationHandler import EvaluationHandler
 if __name__ == "__main__":
     APP_DATA_PATH = DATA_PATH
     APP = "JPetStore"
-    OUTPUT_PATH = os.path.join(os.path.curdir, "logs")
+    start_date = datetime.datetime.now()
+    experiment_id = "hyDec_{}_{}".format(APP, start_date.strftime("%Y%m%d%H%M%S"))
+    output_path = os.path.join(os.path.curdir, "logs", experiment_id)
+    experiment_metadata = dict()
+    hyperparams = dict()
+    analysis_pipeline = list()
+    epsilons = list()
+
+    experiment_metadata["experiment_id"] = experiment_id
+    experiment_metadata["application"] = APP
+    experiment_metadata["start_datetime"] = start_date.strftime("%Y-%m-%d %H:%M:%S")
+    experiment_metadata["hyperparameters"] = hyperparams
+
+    if not os.path.exists(output_path):
+        os.mkdir(output_path)
+
+    start_time = time.time()
 
     # Initialize structural analysis
     # print("Initializing structural analysis")
@@ -55,18 +73,31 @@ if __name__ == "__main__":
 
     # Initialize semantic analysis with fastext
     print("Initializing semantic analysis with fastext")
+    t1 = time.time()
     with open(os.path.join(APP_DATA_PATH, APP.lower(), "semantic_data", "class_names.json"), "r") as f:
         sem_classes = json.load(f)
-    features = np.load(os.path.join(APP_DATA_PATH, APP.lower(), "semantic_data", "class_tfidf.npy"))
     with open(os.path.join(APP_DATA_PATH, APP.lower(), "static_analysis_results", "typeData.json"), "r") as f:
         class_text = [c["textAndNames"] for c in json.load(f)]
     embedding_model = EmbeddingModel()
     embedding_model.load_embedding_model()
     class_tokens = [embedding_model.tokenize(text) for text in class_text]
     emb_analysis = WordEmbeddingAnalysis(class_text, embedding_model, sem_classes, sem_classes)
+    analysis_pipeline.append(emb_analysis)
+    epsilons.append(0.15)
+    hyperparams["word_embedding_hps"] = dict()
+    hyperparams["word_embedding_hps"]["features_path"] = os.path.join(
+        APP_DATA_PATH, APP.lower(), "static_analysis_results", "typeData.json"
+    )
+    hyperparams["word_embedding_hps"]["aggregation"] = "mean"
+    hyperparams["word_embedding_hps"]["model_type"] = "fasttext"
+    hyperparams["word_embedding_hps"]["model_pooling_approach"] = "avg"
+    hyperparams["word_embedding_hps"]["model_dim"] = 300
+    hyperparams["word_embedding_hps"]["fine_tuned"] = False
+    print("Finished semantic analysis with fastext ({:.4f}s)".format(time.time()-t1))
 
     # Initialize dynamic analysis
     print("Initializing dynamic analysis")
+    t1 = time.time()
     dynamic_analysis_data = DYN_DATA_PATH
     dyn_analysis = LogTraceParcer(dynamic_analysis_data)
     short_names = [c.split(".")[-1] for c in sem_classes]
@@ -74,9 +105,16 @@ if __name__ == "__main__":
     dyn_analysis = LogTraceParcer(dynamic_analysis_data, filtered_classes)
     dynamic_analysis = DependencyAnalysis(dyn_analysis.class_relations, short_names,
                                           [i.split("::")[-1] for i in dyn_analysis.class_names])
+    analysis_pipeline.append(dynamic_analysis)
+    epsilons.append(0.65)
+    hyperparams["dynamic_hps"] = dict()
+    hyperparams["dynamic_hps"]["features_path"] = dynamic_analysis_data
+    hyperparams["dynamic_hps"]["similarity"] = "call"
+    print("Finished dynamic analysis ({:.4f}s)".format(time.time()-t1))
 
     # Initialize evaluation class
     print("Initializing evaluation class")
+    t1 = time.time()
     threshold = 50
     structural_data_path = os.path.join(APP_DATA_PATH, APP.lower(), "structural_data", "interactions.npy")
     #semantic_data_path = os.path.join(APP_DATA_PATH, APP.lower(), "semantic_data", "class_tfidf.npy")
@@ -86,16 +124,40 @@ if __name__ == "__main__":
     semantic_data = semantic_data[:, semantic_data.sum(axis=0) < threshold]
     semantic_data = semantic_data.dot(semantic_data.transpose())
     eval_handler = EvaluationHandler(structural_data_path, semantic_data)
+    print("Finished initializing evaluation class ({:.4f}s)".format(time.time()-t1))
 
     # Create the clustering object
     print("Starting the clustering")
-    hybrid_decomp = HybridDecomp([emb_analysis], sem_classes, [0.15])
-    print("Finished the clustering")
-    all_results = list()
+    t1 = time.time()
+    hybrid_decomp = HybridDecomp(analysis_pipeline, sem_classes, epsilons)
     layers = hybrid_decomp.cluster()
+    hyperparams["analysis_pipeline"] = [str(i.__class__.__name__) for i in analysis_pipeline]
+    hyperparams["epsilons"] = epsilons
+    hyperparams["clustering_hps"] = dict()
+    hyperparams["clustering_hps"]["max_iterations"] = 50
+    hyperparams["clustering_hps"]["min_sample"] = 2
+    hyperparams["clustering_hps"]["strategy"] = "iterative"
+    print("Finished the clustering ({:.4f}s)".format(time.time()-t1))
+
+    # recording execution time
+    experiment_metadata["execution time"] = start_time - time.time()
+
+    # Show the results
+    print("Showing and saving the results")
+    with open(os.path.join(output_path, "metadata.json"), "w") as f:
+        json.dump(experiment_metadata, f)
+    all_results = list()
     for i, layer in enumerate(layers):
         results = eval_handler.evaluate(layer)
-        all_results.append(results)
+        all_results.append([experiment_id, i] + list(results.values()))
         print(i, layer, results.values())
     print(results.keys())
+    df = pd.DataFrame(all_results,
+                      columns=["experiment_id", "layer_id", "smq", "cmq", "icp", "ifn", "ned", "cov", "msn"])
+    df.to_csv(os.path.join(output_path, "results.csv".format(experiment_id)), index=False)
+    df_layers = pd.DataFrame(layers, columns=sem_classes)
+    df_layers.to_csv(os.path.join(output_path, "layers.csv"), index=False)
+    # with open(os.path.join(output_path, "layers.json"), "w") as f:
+    #     json.dump(layers, f)
+
 
