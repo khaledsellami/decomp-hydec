@@ -1,7 +1,16 @@
-from typing import Tuple, List
+from typing import Tuple, List, Dict
 
 from sklearn.preprocessing import OneHotEncoder
 import numpy as np
+
+METRICS_RANGES = dict(
+    smq = (-1,1),
+    cmq = (-1,1),
+    ned = (0,1),
+    icp = (0,1),
+    cov = (0,1)
+
+)
 
 
 def process_outliers(microservices: np.ndarray,
@@ -85,20 +94,31 @@ def non_extreme_distribution(microservices: np.ndarray, s_min: int = 5, s_max: i
     return preprocessed_non_extreme_distribution(microservices, s_min, s_max)
 
 
-def preprocessed_non_extreme_distribution(microservices: np.ndarray, s_min: int = 5, s_max: int = 19) -> float:
+def preprocessed_non_extreme_distribution(microservices: np.ndarray, s_min: int = 5, s_max: int = 19,
+                                          method: str = "minmax", epsilon: float = 0.5) -> float:
     """
     Calculate the Non-Extreme Distribution of the given decomposition.
     :param microservices: microservices index for each class/method (List[int])
-    :param s_min: minimum threshold
-    :param s_max: maximum threshold
+    :param s_min: minimum threshold (only needed for "minmax" method)
+    :param s_max: maximum threshold (only needed for "minmax" method)
+    :param method: NED calculation method.
+    :param epsilon: controls the bandwidth for acceptable size (only needed for "avg" method)
     :return: Non-Extreme Distribution value
     """
     unique, counts = np.unique(microservices, return_counts=True)
     n_microservices = len(unique)
+    n_classes = len(microservices)
     if n_microservices < 1:
         return 1
-    non_extreme = ((counts >= s_min)*(counts <= s_max)).sum()
-    ned = 1 - non_extreme / n_microservices
+    if method == "minmax":
+        non_extreme = ((counts >= s_min)*(counts <= s_max)).sum()
+        ned = 1 - non_extreme / n_microservices
+    elif method == "avg":
+        non_extreme = ((counts >= ((1-epsilon)*n_microservices/n_classes))*(
+                counts <= ((1+epsilon)*n_microservices/n_classes))).sum()
+        ned = 1 - non_extreme / n_microservices
+    else:
+        raise ValueError("Unidentified option '{}' for parameter 'method'!".format(method))
     return ned
 
 
@@ -194,6 +214,20 @@ def microservices_number(microservices: np.ndarray, exclude_outliers: bool = Tru
     if not exclude_outliers:
         n_micro += np.sum(microservices == -1)
     return n_micro
+
+
+def combine_metrics(results: Dict) -> float:
+    """
+    Combine metrics into a single normalized value.
+    @param results: python dictionary with metric names as keys and values as the metric value.
+    @return: normalized metric.
+    """
+    tot = 0
+    for m, v in results.items():
+        if m not in METRICS_RANGES:
+            raise ValueError("Unidentified metric '{}. Allowed metrics are {}.".format(m, list(METRICS_RANGES.keys())))
+        tot += (v-METRICS_RANGES[m][0])/(METRICS_RANGES[m][1]-METRICS_RANGES[m][0])
+    return tot/len(results)
 
 
 def precision_and_recall(truth_ind, inferred_ind, v2=True):
