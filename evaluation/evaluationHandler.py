@@ -4,12 +4,13 @@ import numpy as np
 from sklearn.preprocessing import OneHotEncoder
 
 from .metrics import process_outliers, preprocessed_modularity, preprocessed_interface_number, \
-    preprocessed_inter_call_percentage, preprocessed_non_extreme_distribution, coverage, microservices_number
+    preprocessed_inter_call_percentage, preprocessed_non_extreme_distribution, coverage, microservices_number, \
+    combine_metrics, METRICS_RANGES
 
 
 class EvaluationHandler:
-    ALLOWED_METRICS = ["smq", "cmq", "icp", "ifn", "ned", "cov", "msn"]
-    DEFAULT_METRICS = ["smq", "cmq", "icp", "ifn", "ned", "cov", "msn"]
+    ALLOWED_METRICS = ["smq", "cmq", "icp", "ifn", "ned", "cov", "msn", "comb"]
+    DEFAULT_METRICS = ["smq", "cmq", "icp", "ifn", "ned", "cov", "msn", "comb"]
 
     def __init__(self, interaction_data: Union[str, np.ndarray] = None,
                  semantic_data: Union[str, np.ndarray] = None,
@@ -91,6 +92,9 @@ class EvaluationHandler:
             results["cov"] = coverage(microservices)
         if "msn" in self.metrics:
             results["msn"] = microservices_number(microservices, self.exclude_outliers)
+        # needs to be last
+        if "comb" in self.metrics:
+            results["comb"] = combine_metrics({m: results[m] for m in results if m in METRICS_RANGES})
         return results
 
 
