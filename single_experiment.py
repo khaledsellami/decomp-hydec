@@ -118,25 +118,38 @@ if __name__ == "__main__":
     threshold = 50
     structural_data_path = os.path.join(APP_DATA_PATH, APP.lower(), "structural_data", "interactions.npy")
     #semantic_data_path = os.path.join(APP_DATA_PATH, APP.lower(), "semantic_data", "class_tfidf.npy")
-    with open(os.path.join(APP_DATA_PATH, APP.lower(), "semantic_data", "class_words.json"), "r") as f:
+    semantic_data_path = os.path.join(APP_DATA_PATH, APP.lower(), "semantic_data", "class_words.json")
+    with open(semantic_data_path, "r") as f:
         class_words = json.load(f)
     semantic_data = CountVectorizer().fit_transform([" ".join(i) for i in class_words]).toarray()
     semantic_data = semantic_data[:, semantic_data.sum(axis=0) < threshold]
     semantic_data = semantic_data.dot(semantic_data.transpose())
     eval_handler = EvaluationHandler(structural_data_path, semantic_data)
+    eval_hyperparams = dict()
+    experiment_metadata["evaluation_hps"] = eval_hyperparams
+    metrics = eval_handler.DEFAULT_METRICS
+    eval_hyperparams["metrics"] = metrics
+    eval_hyperparams["structural_data_path"] = structural_data_path
+    eval_hyperparams["semantic_data_path"] = semantic_data_path
+    eval_hyperparams["semantic_data_threshold"] = threshold
+    eval_hyperparams["ned_method"] = "minmax"
+    eval_hyperparams["ned_ranges"] = (5, 19)
     print("Finished initializing evaluation class ({:.4f}s)".format(time.time()-t1))
 
     # Create the clustering object
     print("Starting the clustering")
     t1 = time.time()
-    hybrid_decomp = HybridDecomp(analysis_pipeline, sem_classes, epsilons)
+    strategy = "alternating_epsilon"
+    hybrid_decomp = HybridDecomp(analysis_pipeline, sem_classes, epsilons, strategy=strategy)
     layers = hybrid_decomp.cluster()
     hyperparams["analysis_pipeline"] = [str(i.__class__.__name__) for i in analysis_pipeline]
     hyperparams["epsilons"] = epsilons
     hyperparams["clustering_hps"] = dict()
     hyperparams["clustering_hps"]["max_iterations"] = 50
     hyperparams["clustering_hps"]["min_sample"] = 2
-    hyperparams["clustering_hps"]["strategy"] = "iterative"
+    hyperparams["clustering_hps"]["strategy"] = strategy
+    hyperparams["clustering_hps"]["epsilon_step"] = 0.05
+    hyperparams["clustering_hps"]["include_outliers"] = False
     print("Finished the clustering ({:.4f}s)".format(time.time()-t1))
 
     # recording execution time
@@ -153,7 +166,7 @@ if __name__ == "__main__":
         print(i, layer, results.values())
     print(results.keys())
     df = pd.DataFrame(all_results,
-                      columns=["experiment_id", "layer_id", "smq", "cmq", "icp", "ifn", "ned", "cov", "msn"])
+                      columns=["experiment_id", "layer_id"]+metrics)
     df.to_csv(os.path.join(output_path, "results.csv".format(experiment_id)), index=False)
     df_layers = pd.DataFrame(layers, columns=sem_classes)
     df_layers.to_csv(os.path.join(output_path, "layers.csv"), index=False)
