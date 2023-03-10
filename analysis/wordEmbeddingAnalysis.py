@@ -2,10 +2,7 @@ import itertools
 from typing import List
 
 import numpy as np
-import torch
 from sklearn.preprocessing import OneHotEncoder
-from transformers import AutoTokenizer, DataCollatorWithPadding, BertModel
-from datasets import Dataset
 
 from .abstractAnalysis import AbstractAnalysis
 from .similarity import cosine_similarity
