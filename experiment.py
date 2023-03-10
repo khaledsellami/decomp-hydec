@@ -3,6 +3,7 @@ import os
 import json
 import time
 import logging
+import logging.config
 from typing import Dict, Union, List, Tuple
 
 import numpy as np
@@ -109,14 +110,20 @@ ANALYSIS_MAP = {
 
 
 class Experiment:
-    def __init__(self, app: str, hyperparams: Dict):
+    def __init__(self, app: str, hyperparams: Dict, name_append: Union[str, None] = None):
         self.app = app
         self.hyperparams = hyperparams
         start_date = datetime.datetime.now()
         self.experiment_id = "hyDec_{}_{}".format(self.app.lower(), start_date.strftime("%Y%m%d%H%M%S"))
+        if name_append is not None:
+            self.experiment_id = self.experiment_id + "_{}".format(name_append)
         self.output_path = os.path.join(os.path.curdir, "logs", self.app.lower(), self.experiment_id)
         if not os.path.exists(self.output_path):
             os.makedirs(self.output_path, exist_ok=True)
+        logging.config.fileConfig(
+            os.path.join(os.curdir, "utils", 'logging.conf'),
+            defaults={"logfilename": os.path.join(self.output_path, "console_logs.log")}
+        )
         self.experiment_metadata = dict()
         self.experiment_metadata["experiment_id"] = self.experiment_id
         self.experiment_metadata["application"] = self.app

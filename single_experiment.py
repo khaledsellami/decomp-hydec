@@ -23,8 +23,8 @@ if __name__ == "__main__":
     APP_DATA_PATH = DATA_PATH
     APP = "JPetStore"
     start_date = datetime.datetime.now()
-    experiment_id = "hyDec_{}_{}".format(APP, start_date.strftime("%Y%m%d%H%M%S"))
-    output_path = os.path.join(os.path.curdir, "logs", experiment_id)
+    experiment_id = "hyDec_{}_{}".format(APP.lower(), start_date.strftime("%Y%m%d%H%M%S"))
+    output_path = os.path.join(os.path.curdir, "logs", APP.lower(), experiment_id)
     experiment_metadata = dict()
     hyperparams = dict()
     analysis_pipeline = list()
@@ -36,7 +36,7 @@ if __name__ == "__main__":
     experiment_metadata["hyperparameters"] = hyperparams
 
     if not os.path.exists(output_path):
-        os.mkdir(output_path)
+        os.makedirs(output_path, exist_ok=True)
 
     start_time = time.time()
 
@@ -72,7 +72,7 @@ if __name__ == "__main__":
     # np.save(os.path.join(APP_DATA_PATH, APP.lower(), "embeddings.npy"),bert_analysis.embeddings)
 
     # Initialize semantic analysis with fastext
-    print("Initializing semantic analysis with fastext")
+    print("+ Initializing semantic analysis with fastext")
     t1 = time.time()
     with open(os.path.join(APP_DATA_PATH, APP.lower(), "semantic_data", "class_names.json"), "r") as f:
         sem_classes = json.load(f)
@@ -93,10 +93,10 @@ if __name__ == "__main__":
     hyperparams["word_embedding_hps"]["model_pooling_approach"] = "avg"
     hyperparams["word_embedding_hps"]["model_dim"] = 300
     hyperparams["word_embedding_hps"]["fine_tuned"] = False
-    print("Finished semantic analysis with fastext ({:.4f}s)".format(time.time()-t1))
+    print("- Finished semantic analysis with fastext ({:.4f}s)".format(time.time()-t1))
 
     # Initialize dynamic analysis
-    print("Initializing dynamic analysis")
+    print("+ Initializing dynamic analysis")
     t1 = time.time()
     dynamic_analysis_data = DYN_DATA_PATH
     dyn_analysis = LogTraceParcer(dynamic_analysis_data)
@@ -110,10 +110,10 @@ if __name__ == "__main__":
     hyperparams["dynamic_hps"] = dict()
     hyperparams["dynamic_hps"]["features_path"] = dynamic_analysis_data
     hyperparams["dynamic_hps"]["similarity"] = "call"
-    print("Finished dynamic analysis ({:.4f}s)".format(time.time()-t1))
+    print("- Finished dynamic analysis ({:.4f}s)".format(time.time()-t1))
 
     # Initialize evaluation class
-    print("Initializing evaluation class")
+    print("+ Initializing evaluation class")
     t1 = time.time()
     threshold = 50
     structural_data_path = os.path.join(APP_DATA_PATH, APP.lower(), "structural_data", "interactions.npy")
@@ -134,10 +134,10 @@ if __name__ == "__main__":
     eval_hyperparams["semantic_data_threshold"] = threshold
     eval_hyperparams["ned_method"] = "minmax"
     eval_hyperparams["ned_ranges"] = (5, 19)
-    print("Finished initializing evaluation class ({:.4f}s)".format(time.time()-t1))
+    print("- Finished initializing evaluation class ({:.4f}s)".format(time.time()-t1))
 
     # Create the clustering object
-    print("Starting the clustering")
+    print("+ Starting the clustering")
     t1 = time.time()
     strategy = "alternating_epsilon"
     hybrid_decomp = HybridDecomp(analysis_pipeline, sem_classes, epsilons, strategy=strategy)
@@ -146,31 +146,28 @@ if __name__ == "__main__":
     hyperparams["epsilons"] = epsilons
     hyperparams["clustering_hps"] = dict()
     hyperparams["clustering_hps"]["max_iterations"] = 50
-    hyperparams["clustering_hps"]["min_sample"] = 2
+    hyperparams["clustering_hps"]["min_samples"] = 2
     hyperparams["clustering_hps"]["strategy"] = strategy
     hyperparams["clustering_hps"]["epsilon_step"] = 0.05
     hyperparams["clustering_hps"]["include_outliers"] = False
-    print("Finished the clustering ({:.4f}s)".format(time.time()-t1))
+    print("- Finished the clustering ({:.4f}s)".format(time.time()-t1))
 
     # recording execution time
-    experiment_metadata["execution time"] = start_time - time.time()
+    experiment_metadata["execution time"] = time.time() - start_time
 
     # Show the results
-    print("Showing and saving the results")
-    with open(os.path.join(output_path, "metadata.json"), "w") as f:
-        json.dump(experiment_metadata, f)
+    print("=> Showing and saving the results")
+    with open(os.path.join(output_path, "experiment_metadata.json"), "w") as f:
+        json.dump(experiment_metadata, f, indent=4)
     all_results = list()
     for i, layer in enumerate(layers):
         results = eval_handler.evaluate(layer)
         all_results.append([experiment_id, i] + list(results.values()))
         print(i, layer, results.values())
     print(results.keys())
-    df = pd.DataFrame(all_results,
-                      columns=["experiment_id", "layer_id"]+metrics)
+    df = pd.DataFrame(all_results, columns=["experiment_id", "layer_id"]+metrics)
     df.to_csv(os.path.join(output_path, "results.csv".format(experiment_id)), index=False)
     df_layers = pd.DataFrame(layers, columns=sem_classes)
     df_layers.to_csv(os.path.join(output_path, "layers.csv"), index=False)
-    # with open(os.path.join(output_path, "layers.json"), "w") as f:
-    #     json.dump(layers, f)
 
 
