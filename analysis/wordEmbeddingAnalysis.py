@@ -16,16 +16,13 @@ class WordEmbeddingAnalysis(AbstractAnalysis):
     SUPPORTED_AGGREGATION = ["mean", "sum"]
 
     def __init__(self, atom_tokens: List[List[str]], model: EmbeddingModel, atoms: List, supported_atoms: List,
-                 aggregation="mean", embeddings = None):
+                 aggregation="mean", embeddings=None):
         if aggregation not in self.SUPPORTED_AGGREGATION:
             raise ValueError("Unsupported aggregation method \"{}\"".format(aggregation))
         # change type of word to those without preprocessing
-        self.atoms = atoms
-        self.supported_atoms = supported_atoms
+        super().__init__(atom_tokens, atoms, supported_atoms)
         self.model = model
-        self.support_map = [self.atoms.index(i) for i in self.supported_atoms]
         self.aggregation = aggregation
-        self.features = atom_tokens
         self.embeddings = None
         if embeddings is not None:
             self.embeddings = embeddings
