@@ -95,7 +95,7 @@ def non_extreme_distribution(microservices: np.ndarray, s_min: int = 5, s_max: i
 
 
 def preprocessed_non_extreme_distribution(microservices: np.ndarray, s_min: int = 5, s_max: int = 19,
-                                          method: str = "minmax", epsilon: float = 0.5) -> float:
+                                          method: str = "minmax", epsilon: float = 0.5, K: int = 5) -> float:
     """
     Calculate the Non-Extreme Distribution of the given decomposition.
     :param microservices: microservices index for each class/method (List[int])
@@ -103,6 +103,7 @@ def preprocessed_non_extreme_distribution(microservices: np.ndarray, s_min: int 
     :param s_max: maximum threshold (only needed for "minmax" method)
     :param method: NED calculation method.
     :param epsilon: controls the bandwidth for acceptable size (only needed for "avg" method)
+    :param K: number of target microservices (only needed for "avg" method)
     :return: Non-Extreme Distribution value
     """
     unique, counts = np.unique(microservices, return_counts=True)
@@ -114,9 +115,9 @@ def preprocessed_non_extreme_distribution(microservices: np.ndarray, s_min: int 
         non_extreme = ((counts >= s_min)*(counts <= s_max)).sum()
         ned = 1 - non_extreme / n_microservices
     elif method == "avg":
-        non_extreme = ((counts >= ((1-epsilon)*n_microservices/n_classes))*(
-                counts <= ((1+epsilon)*n_microservices/n_classes))).sum()
-        ned = 1 - non_extreme / n_microservices
+        non_extreme = ((counts >= ((1-epsilon)*n_classes/K))*(
+                counts <= ((1+epsilon)*n_classes/K))*counts).sum()
+        ned = 1 - non_extreme / n_classes
     else:
         raise ValueError("Unidentified option '{}' for parameter 'method'!".format(method))
     return ned

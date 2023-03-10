@@ -9,7 +9,7 @@ from .metrics import process_outliers, preprocessed_modularity, preprocessed_int
 
 
 class EvaluationHandler:
-    ALLOWED_METRICS = ["smq", "cmq", "icp", "ifn", "ned", "cov", "msn", "comb"]
+    ALLOWED_METRICS = ["smq", "cmq", "icp", "ifn", "ned", "ned_avg", "cov", "msn", "comb"]
     DEFAULT_METRICS = ["smq", "cmq", "icp", "ifn", "ned", "cov", "msn", "comb"]
 
     def __init__(self, interaction_data: Union[str, np.ndarray] = None,
@@ -88,6 +88,8 @@ class EvaluationHandler:
             results["cmq"] = preprocessed_modularity(microservices_encoded, semantic_data)
         if "ned" in self.metrics:
             results["ned"] = preprocessed_non_extreme_distribution(processed_microservices)
+        if "ned_avg" in self.metrics:
+            results["ned_avg"] = preprocessed_non_extreme_distribution(processed_microservices, method="avg")
         if "cov" in self.metrics:
             results["cov"] = coverage(microservices)
         if "msn" in self.metrics:
