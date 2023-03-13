@@ -135,6 +135,7 @@ class Experiment:
         self.logger = logging.getLogger('Experiment')
 
     def run(self):
+        self.logger.debug("Starting experiment {}".format(self.experiment_id))
         t1 = time.time()
         self.logger.debug("Starting decomposition process")
         for analysis_name, hps in self.hyperparams["analysis"]:
