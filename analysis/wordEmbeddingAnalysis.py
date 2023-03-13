@@ -10,7 +10,7 @@ from .embeddingModel import EmbeddingModel
 
 
 class WordEmbeddingAnalysis(AbstractAnalysis):
-    SUPPORTED_AGGREGATION = ["mean", "sum"]
+    SUPPORTED_AGGREGATION = ["mean", "sum", "combine"]
 
     def __init__(self, atom_tokens: List[List[str]], model: EmbeddingModel, atoms: List, supported_atoms: List,
                  aggregation="mean", embeddings=None):
@@ -43,7 +43,6 @@ class WordEmbeddingAnalysis(AbstractAnalysis):
         elif self.aggregation == "combine":
             new_words = list()
             for j in range(aggregation_map.shape[1]):
-                print(np.where(aggregation_map[:, j])[0])
                 new_words.append(list(itertools.chain(*[self.features[i] for i in np.where(aggregation_map[:, j])[0]])))
             features = self.get_embeddings(new_words)
         else:
