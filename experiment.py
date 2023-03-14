@@ -110,11 +110,11 @@ ANALYSIS_MAP = {
 
 
 class Experiment:
-    def __init__(self, app: str, hyperparams: Dict, name_append: Union[str, None] = None):
+    def __init__(self, app: str, hyperparams: Dict, name_append: Union[str, None] = None, save: bool=True):
         self.app = app
         self.hyperparams = hyperparams
         start_date = datetime.datetime.now()
-        self.experiment_id = "hyDec_{}_{}".format(self.app.lower(), start_date.strftime("%Y%m%d%H%M%S"))
+        self.experiment_id = "hyDec_{}".format(self.app.lower())
         if name_append is not None:
             self.experiment_id = self.experiment_id + "_{}".format(name_append)
         self.output_path = os.path.join(os.path.curdir, "logs", self.app.lower(), self.experiment_id)
@@ -133,10 +133,18 @@ class Experiment:
         self.analysis_pipeline = list()
         self.epsilons = list()
         self.logger = logging.getLogger('Experiment')
+        self.save = save
 
     def run(self):
-        self.logger.debug("Starting experiment {}".format(self.experiment_id))
+        self.logger.info("Starting experiment {}".format(self.experiment_id))
         t1 = time.time()
+        for analysis_name, hps in self.hyperparams["analysis"]:
+            self.experiment_metadata["hyperparameters"][analysis_name] = hps.copy()
+        self.experiment_metadata["evaluation_hps"] = self.hyperparams["evaluation"].copy()
+        self.experiment_metadata["clustering_hps"] = self.hyperparams["clustering"].copy()
+        if self.save:
+            with open(os.path.join(self.output_path, "experiment_metadata.json"), "w") as f:
+                json.dump(self.experiment_metadata, f, indent=4)
         self.logger.debug("Starting decomposition process")
         for analysis_name, hps in self.hyperparams["analysis"]:
             if analysis_name in ANALYSIS_MAP:
@@ -152,11 +160,12 @@ class Experiment:
         # save results
         self.eval_results(layers, eval_handler, atom_list)
         self.logger.debug("Finished decomposition process")
+        self.logger.info("Finished experiment {}".format(self.experiment_id))
 
     def init_evaluation(self, hyperparams: Dict) -> EvaluationHandler:
         t1 = time.time()
         self.logger.debug("Initializing evaluation")
-        self.experiment_metadata["evaluation_hps"] = hyperparams.copy()
+        # self.experiment_metadata["evaluation_hps"] = hyperparams.copy()
         with open(hyperparams["semantic_data_path"], "r") as f:
             class_words = json.load(f)
         semantic_data = CountVectorizer().fit_transform([" ".join(i) for i in class_words]).toarray()
@@ -172,7 +181,7 @@ class Experiment:
     def cluster(self, hyperparams: Dict) -> Tuple[Union[List[np.ndarray], List[List[int]]], List]:
         t1 = time.time()
         self.logger.debug("Starting clustering")
-        self.experiment_metadata["clustering_hps"] = hyperparams.copy()
+        # self.experiment_metadata["clustering_hps"] = hyperparams.copy()
         with open(hyperparams["atoms_path"], "r") as f:
             sem_classes = json.load(f)
         hybrid_decomp = HybridDecomp(self.analysis_pipeline, sem_classes, self.epsilons,
@@ -187,7 +196,7 @@ class Experiment:
         return layers, hybrid_decomp.atoms
 
     def eval_results(self, layers: Union[List[np.ndarray], List[List[int]]], eval_handler: EvaluationHandler,
-                     atom_list: List, log: bool = True, save: bool = True):
+                     atom_list: List, log: bool = False):
         t1 = time.time()
         self.logger.debug("Evaluating results")
         metrics = eval_handler.metrics
@@ -202,7 +211,7 @@ class Experiment:
         exec_time = time.time() - t1
         self.experiment_metadata["exec_time"]["evaluation_calc"] = exec_time
         self.logger.debug("Finished evaluating ({:.4f}s)".format(exec_time))
-        if save:
+        if self.save:
             t1 = time.time()
             self.logger.debug("Saving results")
             df = pd.DataFrame(all_results, columns=["experiment_id", "layer_id"] + metrics)
@@ -214,17 +223,15 @@ class Experiment:
             exec_time = time.time() - t1
             self.logger.debug("Finished saving results ({:.4f}s)".format(exec_time))
 
-    def load_analysis(self, analysis_name: str, hyperparams: Dict, save: bool = True):
+    def load_analysis(self, analysis_name: str, hyperparams: Dict):
         assert analysis_name in ANALYSIS_MAP
         t1 = time.time()
         self.logger.debug("Initializing {} analysis".format(analysis_name))
-        if save:
-            self.experiment_metadata["hyperparameters"][analysis_name] = hyperparams.copy()
+        # self.experiment_metadata["hyperparameters"][analysis_name] = hyperparams.copy()
         analysis_obj = ANALYSIS_MAP[analysis_name](hyperparams)
         self.analysis_pipeline.append(analysis_obj)
         self.epsilons.append(hyperparams["epsilon"])
         exec_time = time.time() - t1
-        if save:
-            self.experiment_metadata["exec_time"][analysis_name] = exec_time
+        self.experiment_metadata["exec_time"][analysis_name] = exec_time
         self.logger.debug("Finished {} ({:.4f}s)".format(analysis_name, exec_time))
 
