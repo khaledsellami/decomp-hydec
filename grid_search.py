@@ -38,6 +38,7 @@ if __name__ == "__main__":
     group.add_argument("-l", "--len", help='return the number of grid search parameters', action="store_true")
     group.add_argument("-r", "--run", help='run the decomposition once', action="store_true")
     group.add_argument("-m", "--multirun", help='run the decomposition multiple times in parallel', action="store_true")
+    group.add_argument("-s", "--sequence", help='run the decomposition multiple times in sequence', action="store_true")
     parser.add_argument("-p", "--pipeline", dest='analysis_pipeline', type=str, nargs='+',
                         help='monolithic analysis processes pipeline', required=True,
                         choices=[i for i in ANALYSIS_MAP.keys() if i != "sum"])
@@ -50,6 +51,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.multirun and (args.range is None or args.nprocess is None):
         parser.error("--multirun requires --range and --nprocess.")
+    elif args.sequence and args.range is None:
+        parser.error("--multirun requires --range and --nprocess.")
 
     # seed = 120
     app = args.APP
@@ -57,7 +60,6 @@ if __name__ == "__main__":
     name = args.name
     job_id = args.jobid
     task_id = args.taskid
-
 
     hp_ranges = get_hyperparams(["clustering", "evaluation"]+analysis_pipeline, DATA_PATH, app)
     # hp_ranges["structural"]["epsilon"] = 1
@@ -67,22 +69,31 @@ if __name__ == "__main__":
               if (isinstance(l, collections.Iterable) and not (isinstance(l, str) or isinstance(l, dict)))}
     p_grid = list(ParameterGrid(p_grid))
     if args.len:
+        # print number of parameter and exit
         print(len(p_grid))
         exit()
     elif args.run:
+        # run a single experiment
         print("running a single experiment on {}".format(p_grid[task_id]))
         exp_name = "{}_{}_{}".format(name, job_id, task_id)
         run_experiment((p_grid[task_id], hp_ranges, app, exp_name))
-    elif args.multirun:
+    elif args.multirun or args.sequence:
+        # run multiple experiments
         exp_range = args.range
-        num_process = min(args.nprocess, cpu_count())
         start = task_id * exp_range
         assert start <= len(p_grid)
         end = min((task_id + 1)*exp_range, len(p_grid))
-        print("running experiments from {} to {} with {} processes at a time".format(start, end, num_process))
         params = p_grid[start: end]
-        exp_names = ["{}_{}_{}".format(name, job_id, i) for i in range(start, end)]
-        with Pool(processes=num_process) as p:
-            p.map(run_experiment, zip(params, [hp_ranges]*len(params), [app]*len(params), exp_names))
+        exp_name_format = "{}_{}_{}" if name != "" else "{}{}_{}"
+        exp_names = [exp_name_format.format(name, job_id, i) for i in range(start, end)]
+        if args.multirun:
+            num_process = min(args.nprocess, cpu_count())
+            print("running experiments from {} to {} with {} processes at a time".format(start, end, num_process))
+            with Pool(processes=num_process) as p:
+                p.map(run_experiment, zip(params, [hp_ranges]*len(params), [app]*len(params), exp_names))
+        else:
+            print("running experiments from {} to {} sequentially".format(start, end))
+            for arguments in zip(params, [hp_ranges]*len(params), [app]*len(params), exp_names):
+                run_experiment(arguments)
     else:
         raise NotImplementedError
