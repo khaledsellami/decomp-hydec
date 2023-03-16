@@ -52,7 +52,7 @@ if __name__ == "__main__":
     if args.multirun and (args.range is None or args.nprocess is None):
         parser.error("--multirun requires --range and --nprocess.")
     elif args.sequence and args.range is None:
-        parser.error("--multirun requires --range and --nprocess.")
+        parser.error("--sequence requires --range.")
 
     # seed = 120
     app = args.APP
@@ -71,6 +71,7 @@ if __name__ == "__main__":
     if args.len:
         # print number of parameter and exit
         print(len(p_grid))
+        print(p_grid[0].keys())
         exit()
     elif args.run:
         # run a single experiment

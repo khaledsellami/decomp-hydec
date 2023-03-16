@@ -30,14 +30,14 @@ def get_hyperparams(names: List[str], data_path: str, app: str) -> Dict[str, Dic
     hp_ranges["dynamic"] = dict(
        atoms_path=sem_classes,
        features_path=DYN_DATA_PATH,
-       epsilon=np.arange(0.05, 1, 0.1),
+       epsilon=np.arange(0.05, 1, 0.01),
        similarity=["call", "cousage"]
    )
     class_calls = os.path.join(data_path, app.lower(), "structural_data", "class_calls.npy")
     hp_ranges["structural"] = dict(
        atoms_path=str_classes,
        features_path=class_calls,
-       epsilon=np.arange(0.05, 1, 0.1),
+       epsilon=np.arange(0.05, 1, 0.01),
        similarity=["call", "cousage"]
    )
 
@@ -47,7 +47,7 @@ def get_hyperparams(names: List[str], data_path: str, app: str) -> Dict[str, Dic
         atoms_path=sem_classes,
         features_path=class_tfidf,
         atoms_tokens=class_words,
-        epsilon=np.arange(0.05, 1, 0.1),
+        epsilon=np.arange(0.05, 1, 0.01),
         aggregation=["mean", "sum"]
     )
 
