@@ -5,7 +5,6 @@ import numpy as np
 import torch
 from sklearn.preprocessing import OneHotEncoder
 from transformers import AutoTokenizer, DataCollatorWithPadding, BertModel
-from datasets import Dataset
 
 from .abstractAnalysis import AbstractAnalysis
 from .similarity import cosine_similarity
@@ -37,9 +36,10 @@ class BertAnalysis(AbstractAnalysis):
             self.embeddings = self.get_embeddings(self.features)
 
     def get_embeddings(self, features):
-        dataset = Dataset.from_dict({"words": features}).map(lambda x: {"sentence": " ".join(x["words"])})
-        dataset = dataset.map(lambda x: self.tokenizer(
-            x["sentence"], truncation=True, padding=True, return_tensors="pt"), batched=True)
+        dataset = self.tokenizer([" ".join(x) for x in features], truncation=True, padding=True, return_tensors="pt")
+        # dataset = Dataset.from_dict({"words": features}).map(lambda x: {"sentence": " ".join(x["words"])})
+        # dataset = dataset.map(lambda x: self.tokenizer(
+        #     x["sentence"], truncation=True, padding=True, return_tensors="pt"), batched=True)
         #dataset = Dataset.from_dict({"words": features}).map(f, batched=True)
         print(torch.LongTensor(dataset["input_ids"]).shape)
         output = self.model(input_ids=torch.LongTensor(dataset["input_ids"]),
