@@ -1,0 +1,32 @@
+{
+    "clustering": {
+        "atoms_path": "path_to_full_class_or_method_list",
+        "strategy": "sequential",
+        "max_iterations": 50,
+        "min_samples": 2,
+        "epsilon_step": 0.05,
+        "include_outliers": false
+    },
+    "dynamic": {
+                "atoms_path": "path_to_class_or_method_list",
+                "features_path": "path_to_log_data",
+                "epsilon": 0.65,
+                "similarity": "call"
+    },
+    "structural": {
+                "atoms_path": "path_to_class_or_method_list",
+                "features_path": "path_to_structural_data",
+                "epsilon": 0.65,
+                "similarity": "call"
+    },
+    "semantic": {
+                "atoms_path": "path_to_class_or_method_list",
+                "features_path": "path_to_semantic_data",
+                "epsilon": 0.65,
+                "aggregation": "mean"
+    },
+    "sum": {
+                "epsilon": 0.65,
+                "weights": null
+    }
+}
