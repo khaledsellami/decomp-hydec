@@ -8,4 +8,4 @@ RUN python -m pip install --upgrade pip
 RUN python -m pip install -r requirements.txt
 
 EXPOSE 50055
-ENTRYPOINT [ "python", "server.py" ]
+ENTRYPOINT [ "python", "main.py" ]
