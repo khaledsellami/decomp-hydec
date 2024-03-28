@@ -9,9 +9,9 @@ import grpc
 import numpy as np
 
 from hydec import generate_decomposition
-from utils import load_dataframe
-from dataHandler import save_data
-from models.hydec import DecompRequest, Decomposition, DecompositionLayers, DecompositionLayer, \
+from hydec.utils import load_dataframe
+from hydec.dataHandler import save_data
+from hydec.models.hydec import DecompRequest, Decomposition, DecompositionLayers, DecompositionLayer, \
     ApproachVersion, Granularity, Partition, AnalysisType, add_HyDecServicer_to_server, HyDecServicer
 
 

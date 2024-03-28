@@ -1,6 +1,6 @@
 import pandas as pd
 
-from models import Format
+from ..models.parse import Format
 
 
 def load_dataframe(bytes, format) -> pd.DataFrame:

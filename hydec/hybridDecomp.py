@@ -3,7 +3,7 @@ from typing import List
 import numpy as np
 from sklearn.cluster import DBSCAN
 
-from analysis.abstractAnalysis import AbstractAnalysis
+from .analysis.abstractAnalysis import AbstractAnalysis
 
 
 class HybridDecomp:

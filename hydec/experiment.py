@@ -9,8 +9,8 @@ from typing import Dict, Union, List, Tuple
 import numpy as np
 import pandas as pd
 
-from hybridDecomp import HybridDecomp
-from dataHandler import DataHandler
+from .hybridDecomp import HybridDecomp
+from .dataHandler import DataHandler
 
 
 class Experiment:

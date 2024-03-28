@@ -1,6 +1,6 @@
-numpy==1.23.3
-scikit-learn==1.1.3
-pandas==1.4.4
-fastparquet
-grpcio==1.42.0
-protobuf==3.20.3
+numpy>=1.23.3
+scikit-learn>=1.1.3
+pandas>=1.4.4
+pyarrow>=4.0.0
+grpcio>=1.42.0
+protobuf>=3.20.3,<4.0.0rc1

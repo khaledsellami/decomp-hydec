@@ -5,11 +5,11 @@ from typing import Dict, List, Callable
 import numpy as np
 import pandas as pd
 
-from analysis.abstractAnalysis import AbstractAnalysis
-from analysis.dependencyAnalysis import DependencyAnalysis
-from analysis.sumAnalysis import SumAnalysis
-from analysis.tfidfAnalysis import TfidfAnalysis
-from clients.parsingClient import ParsingClient
+from .analysis.abstractAnalysis import AbstractAnalysis
+from .analysis.dependencyAnalysis import DependencyAnalysis
+from .analysis.sumAnalysis import SumAnalysis
+from .analysis.tfidfAnalysis import TfidfAnalysis
+from .clients.parsingClient import ParsingClient
 
 
 class DataHandler:

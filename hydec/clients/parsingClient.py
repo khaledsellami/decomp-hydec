@@ -5,8 +5,8 @@ from typing import List, Callable
 
 import grpc
 
-from models.parse import ParserStub, NamesRequest, Granularity, ParseRequest, Status, Format
-from utils.utils import load_dataframe
+from ..models.parse import ParserStub, NamesRequest, Granularity, ParseRequest, Status, Format
+from ..utils import load_dataframe
 
 
 class ParsingClient:

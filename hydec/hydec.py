@@ -4,9 +4,9 @@ from typing import Dict, Tuple, Union, List
 
 import numpy as np
 
-from experiment import Experiment
-from dataHandler import DataHandler
-from utils.default_hyperparams import generate_hps_input, get_default_hyperparams, merge_input
+from .experiment import Experiment
+from .dataHandler import DataHandler
+from .utils.default_hyperparams import generate_hps_input, get_default_hyperparams, merge_input
 
 
 APPROACH_PIPELINES = {
