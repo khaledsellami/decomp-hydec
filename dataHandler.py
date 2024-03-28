@@ -16,26 +16,31 @@ class DataHandler:
     SUPPORTED_ANALYSIS = ["dynamic", "structural", "semantic", "sum"]
     DATA_PATH = os.path.join(os.curdir, "data")
     DEFAULTS = {
-        "dynamic": {"features": "class_calls.npy", "atoms": "class_names.json"},
-        "structural": {"features": "class_calls.npy", "atoms": "class_names.json"},
-        "semantic": {"features": "class_tfidf.npy", "atoms": "class_names.json", "tokens": "class_words.json"},
+        "dynamic": {"features": "{}_calls.npy", "atoms": "{}_names.json"},
+        "structural": {"features": "{}_calls.npy", "atoms": "{}_names.json"},
+        "semantic": {"features": "{}_tfidf.npy", "atoms": "{}_names.json", "tokens": "{}_words.json"},
     }
 
-    def __init__(self, app_name: str, app_repo: str = ""):
+    def __init__(self, app_name: str, app_repo: str = "", granularity: str = "class", is_distributed: bool = False):
+        assert granularity in ["class", "method"]
         self.app_name = app_name
         self.app_repo = app_repo
-        self.parsing_client = ParsingClient(app_name, app_repo)
+        self.granularity = granularity
+        self.parsing_client = ParsingClient(app_name, app_repo, granularity=granularity, is_distributed=is_distributed)
 
     def load_dyn_analysis(self, hyperparams: Dict, all_atoms: List[str]) -> AbstractAnalysis:
+        # TODO add support for method level analysis in local data
         if "features_path" in hyperparams and "atoms_path" in hyperparams:
             with open(hyperparams["atoms_path"], "r") as f:
                 dyn_classes = json.load(f)
             features = np.load(hyperparams["features_path"])
         elif os.path.exists(os.path.join(self.DATA_PATH, self.app_name.lower(), "dynamic")):
             local_features = os.path.join(
-                self.DATA_PATH, self.app_name.lower(), "dynamic", self.DEFAULTS["dynamic"]["features"])
+                self.DATA_PATH, self.app_name.lower(), "dynamic", self.DEFAULTS["dynamic"]["features"].format(
+                    self.granularity))
             local_atoms = os.path.join(
-                self.DATA_PATH, self.app_name.lower(), "dynamic", self.DEFAULTS["dynamic"]["atoms"])
+                self.DATA_PATH, self.app_name.lower(), "dynamic", self.DEFAULTS["dynamic"]["atoms"].format(
+                    self.granularity))
             with open(local_atoms, "r") as f:
                 dyn_classes = json.load(f)
             features = np.load(local_features)
@@ -45,21 +50,23 @@ class DataHandler:
         return dynamic_analysis
 
     def load_str_analysis(self, hyperparams: Dict, all_atoms: List[str]) -> AbstractAnalysis:
+        # TODO add support for method level analysis in local data
         if "features_path" in hyperparams and "atoms_path" in hyperparams:
             with open(hyperparams["atoms_path"], "r") as f:
                 str_classes = json.load(f)
             features = np.load(hyperparams["features_path"])
         elif os.path.exists(os.path.join(self.DATA_PATH, self.app_name.lower(), "structural")):
             local_features = os.path.join(
-                self.DATA_PATH, self.app_name.lower(), "structural", self.DEFAULTS["structural"]["features"])
+                self.DATA_PATH, self.app_name.lower(), "structural", self.DEFAULTS["structural"]["features"].format(
+                    self.granularity))
             local_atoms = os.path.join(
-                self.DATA_PATH, self.app_name.lower(), "structural", self.DEFAULTS["structural"]["atoms"])
+                self.DATA_PATH, self.app_name.lower(), "structural", self.DEFAULTS["structural"]["atoms"].format(
+                    self.granularity))
             with open(local_atoms, "r") as f:
                 str_classes = json.load(f)
             features = np.load(local_features)
         else:
             try:
-                # load data remotely TODO
                 str_classes = self.parsing_client.get_names()
                 features = self.parsing_client.get_calls()
             except Exception as e:
@@ -69,6 +76,7 @@ class DataHandler:
         return structural_analysis
 
     def load_sem_analysis(self, hyperparams: Dict, all_atoms: List[str]) -> AbstractAnalysis:
+        # TODO add support for method level analysis in local data
         if "features_path" in hyperparams and "atoms_path" in hyperparams:
             with open(hyperparams["atoms_path"], "r") as f:
                 sem_classes = json.load(f)
@@ -77,9 +85,11 @@ class DataHandler:
             features = np.load(hyperparams["features_path"])
         elif os.path.exists(os.path.join(self.DATA_PATH, self.app_name.lower(), "semantic")):
             local_features = os.path.join(
-                self.DATA_PATH, self.app_name.lower(), "semantic", self.DEFAULTS["semantic"]["features"])
+                self.DATA_PATH, self.app_name.lower(), "semantic", self.DEFAULTS["semantic"]["features"].format(
+                    self.granularity))
             local_atoms = os.path.join(
-                self.DATA_PATH, self.app_name.lower(), "semantic", self.DEFAULTS["semantic"]["atoms"])
+                self.DATA_PATH, self.app_name.lower(), "semantic", self.DEFAULTS["semantic"]["atoms"].format(
+                    self.granularity))
             # local_tokens = os.path.join(
             #     self.DATA_PATH, self.app_name.lower(), "semantic", self.DEFAULTS["semantic"]["tokens"])
             with open(local_atoms, "r") as f:
@@ -89,7 +99,6 @@ class DataHandler:
             #     class_tokens = json.load(f)
         else:
             try:
-                # load data remotely TODO
                 sem_classes = self.parsing_client.get_names()
                 features = self.parsing_client.get_tfidf()
             except Exception as e:
@@ -130,7 +139,7 @@ class DataHandler:
         elif os.path.exists(os.path.join(self.DATA_PATH, self.app_name.lower(), "semantic")):
             local_atoms = os.path.join(
                 self.DATA_PATH, self.app_name.lower(), "semantic",
-                self.DEFAULTS["semantic"]["atoms"]
+                self.DEFAULTS["semantic"]["atoms"].format(self.granularity)
             )
             with open(local_atoms, "r") as f:
                 atoms = json.load(f)

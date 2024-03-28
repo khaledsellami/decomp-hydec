@@ -15,7 +15,8 @@ from dataHandler import DataHandler
 
 class Experiment:
     def __init__(self, app: str, hyperparams: Dict, app_repo: str = "", name_append: Union[str, None] = None,
-                 include_metadata: bool = True, save_output: bool = False, decomp_approach: str = "hyDec"):
+                 include_metadata: bool = True, save_output: bool = False, decomp_approach: str = "hyDec",
+                 granularity: str = "class", is_distributed: bool = False):
         self.app = app
         self.app_repo = app_repo
         self.hyperparams = hyperparams
@@ -34,6 +35,8 @@ class Experiment:
         self.experiment_metadata = dict()
         self.experiment_metadata["experiment_id"] = self.experiment_id
         self.experiment_metadata["application"] = self.app
+        self.experiment_metadata["granularity"] = granularity
+        self.experiment_metadata["app_distributed"] = is_distributed
         self.experiment_metadata["start_datetime"] = start_date.strftime("%Y-%m-%d %H:%M:%S")
         self.experiment_metadata["hyperparameters"] = dict()
         self.experiment_metadata["exec_time"] = dict()
@@ -41,7 +44,7 @@ class Experiment:
         self.epsilons = list()
         self.logger = logging.getLogger('Experiment')
         self.include_metadata = include_metadata
-        self.data_handler = DataHandler(self.app, self.app_repo)
+        self.data_handler = DataHandler(self.app, self.app_repo, granularity=granularity, is_distributed=is_distributed)
         self.atoms = self.data_handler.get_atoms(self.hyperparams["clustering"])
 
     def run(self) -> Tuple[Union[List[np.ndarray], List[List[int]]], List, Union[None, Dict]]:

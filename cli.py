@@ -12,9 +12,12 @@ def cli(args):
     semantic_path = args.semantic
     dynamic_path = args.dynamic
     verbose = args.verbose
+    granularity = args.granularity
+    is_distributed = args.distributed
     decomposition, layers, atoms, _ = generate_decomposition(app, app_repo, decomp_approach, hyperparams_path,
                                                              structural_path, semantic_path, dynamic_path,
-                                                             include_metadata=True, save_output=True)
+                                                             include_metadata=True, save_output=True,
+                                                             granularity=granularity, is_distributed=is_distributed)
     if verbose:
         print(decomposition)
 
@@ -32,6 +35,10 @@ if __name__ == "__main__":
     parser.add_argument("-p", "--hyperparams", help='path for the hyperparameters file', type=str)
     parser.add_argument("-a", "--approach", help='use hyDec or hierDec', default="hyDec", choices=["hyDec", "hierDec"])
     parser.add_argument("-v", "--verbose", help='print the final output', action="store_true")
+    parser.add_argument("-g", "--granularity", help='granularity level of the decomposition', type=str,
+                        default="class", choices=["class", "method"])
+    parser.add_argument("-d", "--distributed",
+                        help='the application to decompose has a distributed architecture', action="store_true")
     args = parser.parse_args()
     cli(args)
 

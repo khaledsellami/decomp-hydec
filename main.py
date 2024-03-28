@@ -23,6 +23,10 @@ def main():
     cli_parser.add_argument("-a", "--approach", help='use hyDec or hierDec', default="hyDec",
                             choices=["hyDec", "hierDec"])
     cli_parser.add_argument("-v", "--verbose", help='print the final output', action="store_true")
+    cli_parser.add_argument("-g", "--granularity", help='granularity level of the decomposition', type=str,
+                            default="class", choices=["class", "method"])
+    cli_parser.add_argument("-d", "--distributed",
+                            help='the application to decompose has a distributed architecture', action="store_true")
     # server subtask
     server_parser = subparsers.add_parser("start", description="start the Hierdec server")
     # configure logging

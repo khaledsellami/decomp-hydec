@@ -11,9 +11,8 @@ import numpy as np
 from hydec import generate_decomposition
 from utils import load_dataframe
 from dataHandler import save_data
-from models.hydec_pb2 import DecompRequest, Decomposition, DecompositionLayers, DecompositionLayer, \
-    ApproachVersion, Granularity, Partition, AnalysisType
-from models.hydec_pb2_grpc import add_HyDecServicer_to_server, HyDecServicer
+from models.hydec import DecompRequest, Decomposition, DecompositionLayers, DecompositionLayer, \
+    ApproachVersion, Granularity, Partition, AnalysisType, add_HyDecServicer_to_server, HyDecServicer
 
 
 TEMP_PATH = os.path.join(os.curdir, "temp_data")
@@ -31,32 +30,36 @@ class DecompServer(HyDecServicer):
     def getDecomposition(self, request: DecompRequest, context):
         app = request.appName
         app_repo = request.appRepo
-        level = Granularity.Name(request.level)
+        level = Granularity.Name(request.level).lower()
         language = request.language
+        is_distributed = request.isDistributed if request.HasField("isDistributed") else False
         decomp_approach = ApproachVersion.Name(request.decompApproach)
         hyperparams_path = request.hyperparams_path if request.hyperparams_path != "" else None
         structural_path = request.structural_path if request.structural_path != "" else None
         semantic_path = request.semantic_path if request.semantic_path != "" else None
         dynamic_path = request.dynamic_path if request.dynamic_path != "" else None
         final_layer, _, atoms, _ = generate_decomposition(app, app_repo, decomp_approach, hyperparams_path,
-                                                                 structural_path, semantic_path, dynamic_path,
-                                                                 include_metadata=False, save_output=False)
+                                                          structural_path, semantic_path, dynamic_path,
+                                                          include_metadata=False, save_output=False,
+                                                          granularity=level, is_distributed=is_distributed)
         return Decomposition(name=app, appName=app, language=language, level=level, appRepo=app_repo,
                              partitions=parse_layer(final_layer, atoms))
 
     def getLayers(self, request, context):
         app = request.appName
         app_repo = request.appRepo
-        level = Granularity.Name(request.level)
+        level = Granularity.Name(request.level).lower()
         language = request.language
+        is_distributed = request.isDistributed if request.HasField("isDistributed") else False
         decomp_approach = ApproachVersion.Name(request.decompApproach)
         hyperparams_path = request.hyperparams_path if request.hyperparams_path != "" else None
         structural_path = request.structural_path if request.structural_path != "" else None
         semantic_path = request.semantic_path if request.semantic_path != "" else None
         dynamic_path = request.dynamic_path if request.dynamic_path != "" else None
         final_layer, layers, atoms, _ = generate_decomposition(app, app_repo, decomp_approach, hyperparams_path,
-                                                                 structural_path, semantic_path, dynamic_path,
-                                                                 include_metadata=False, save_output=False)
+                                                               structural_path, semantic_path, dynamic_path,
+                                                               include_metadata=False, save_output=False,
+                                                               granularity=level, is_distributed=is_distributed)
         decomposition = Decomposition(name=app, appName=app, language=language, level=level, appRepo=app_repo,
                              partitions=parse_layer(final_layer, atoms))
         decomp_layers = [DecompositionLayer(name="layer_{}".format(i),

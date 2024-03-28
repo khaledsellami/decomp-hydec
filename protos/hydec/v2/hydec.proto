@@ -31,6 +31,7 @@ message DecompRequest {
   optional string structural_path = 7;
   optional string dynamic_path = 8;
   optional string semantic_path = 9;
+  optional bool isDistributed = 10;
 }
 
 message DecompFileRequest {
