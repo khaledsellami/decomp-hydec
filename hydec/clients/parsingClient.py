@@ -17,7 +17,7 @@ class ParsingClient:
     PARSING_PORT = os.getenv('SERVICE_PARSING_PORT', 50500)
 
     def __init__(self, app: str, app_repo: str = "", language: str = "java", granularity: str = "class",
-                 is_distributed: bool = False):
+                 is_distributed: bool = False, *args, **kwargs):
         self.app_name = app
         self.app_repo = app_repo
         self.language = language

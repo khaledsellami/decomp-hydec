@@ -14,10 +14,12 @@ def cli(args):
     verbose = args.verbose
     granularity = args.granularity
     is_distributed = args.distributed
+    data_path = args.data_path
     decomposition, layers, atoms, _ = generate_decomposition(app, app_repo, decomp_approach, hyperparams_path,
                                                              structural_path, semantic_path, dynamic_path,
                                                              include_metadata=True, save_output=True,
-                                                             granularity=granularity, is_distributed=is_distributed)
+                                                             granularity=granularity, is_distributed=is_distributed,
+                                                             data_path=data_path)
     if verbose:
         print(decomposition)
 
@@ -28,7 +30,8 @@ if __name__ == "__main__":
         description='single run of hydec or hierdec')
 
     parser.add_argument('APP', type=str, help='application to apply decomposition on')
-    parser.add_argument("-r", "--repo", help='link for the github repository', type=str)
+    parser.add_argument("-r", "--repo", help='link for the github repository or path to the source code',
+                        type=str)
     parser.add_argument("-d", "--dynamic", help='path for the dynamic analysis data', type=str)
     parser.add_argument("-e", "--semantic", help='path for the semantic analysis data', type=str)
     parser.add_argument("-t", "--structural", help='path for the structural analysis data', type=str)
@@ -39,6 +42,7 @@ if __name__ == "__main__":
                         default="class", choices=["class", "method"])
     parser.add_argument("-di", "--distributed",
                         help='the application to decompose has a distributed architecture', action="store_true")
+    parser.add_argument("-dp", "--data-path", help='path to existing data', type=str, default=None)
     args = parser.parse_args()
     cli(args)
 

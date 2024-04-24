@@ -15,7 +15,8 @@ def main():
     cli_parser = subparsers.add_parser("decompose",
                                        description="Execute a single run of hydec or hierdec")
     cli_parser.add_argument('APP', type=str, help='application to apply decomposition on')
-    cli_parser.add_argument("-r", "--repo", help='link for the github repository', type=str)
+    cli_parser.add_argument("-r", "--repo", help='link for the github repository or path to the source code',
+                            type=str)
     cli_parser.add_argument("-d", "--dynamic", help='path for the dynamic analysis data', type=str)
     cli_parser.add_argument("-e", "--semantic", help='path for the semantic analysis data', type=str)
     cli_parser.add_argument("-t", "--structural", help='path for the structural analysis data', type=str)
@@ -27,6 +28,7 @@ def main():
                             default="class", choices=["class", "method"])
     cli_parser.add_argument("-di", "--distributed",
                             help='the application to decompose has a distributed architecture', action="store_true")
+    cli_parser.add_argument("-dp", "--data-path", help='path to existing data', type=str, default=None)
     # server subtask
     server_parser = subparsers.add_parser("start", description="start the Hierdec server")
     # configure logging

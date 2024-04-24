@@ -1,10 +1,12 @@
 from typing import List
+import warnings
 
 import numpy as np
 from sklearn.preprocessing import OneHotEncoder
+from sklearn.metrics.pairwise import cosine_similarity
 
 from .abstractAnalysis import AbstractAnalysis
-from .similarity import cosine_similarity
+# from .similarity import cosine_similarity
 
 
 class TfidfAnalysis(AbstractAnalysis):
@@ -22,9 +24,11 @@ class TfidfAnalysis(AbstractAnalysis):
         self.support_map = [self.atoms.index(i) for i in self.supported_atoms]
 
     def aggregate(self, current_clusters: List[int]):
-        aggregation_map = OneHotEncoder(sparse=False, dtype=int).fit_transform(
-            np.array(current_clusters).reshape(-1, 1)
-        )
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            aggregation_map = OneHotEncoder(sparse=False, dtype=int).fit_transform(
+                np.array(current_clusters).reshape(-1, 1)
+            )
         if self.aggregation == "mean":
             features = aggregation_map.T.dot(self.features)/aggregation_map.sum(axis=0).reshape(-1,1)
         elif self.aggregation == "sum":

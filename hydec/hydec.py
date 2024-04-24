@@ -18,7 +18,8 @@ APPROACH_PIPELINES = {
 def generate_decomposition(app: str, app_repo: str = None, decomp_approach: str = "hyDec", hyperparams_path: str = None,
                            structural_path: str = None, semantic_path: str = None, dynamic_path: str = None,
                            include_metadata: bool = False, save_output: bool = False, granularity: str = "class",
-                           is_distributed: bool = False
+                           is_distributed: bool = False, use_parsing_module: bool = True,
+                           data_path: Union[str, None] = None, *args, **kwargs
                            ) -> Tuple[Union[np.ndarray, List[int]], Union[List[np.ndarray], List[List[int]]], List,
                                       Union[None, Dict]]:
     assert granularity in ["class", "method"]
@@ -54,6 +55,7 @@ def generate_decomposition(app: str, app_repo: str = None, decomp_approach: str 
            "analysis": [(i, j) for i, j in hp_input.items() if i not in ["clustering"]]}
     experiment = Experiment(app, hps, app_repo=app_repo, decomp_approach=decomp_approach,
                             include_metadata=include_metadata, save_output=save_output, granularity=granularity,
-                            is_distributed=is_distributed)
+                            is_distributed=is_distributed, use_parsing_module=use_parsing_module,
+                            data_path=data_path, *args, **kwargs)
     layers, atoms, metadata = experiment.run()
     return layers[-1], layers, atoms, metadata

@@ -1,4 +1,5 @@
 from typing import List
+import warnings
 
 import numpy as np
 from sklearn.preprocessing import OneHotEncoder
@@ -26,9 +27,11 @@ class DependencyAnalysis(AbstractAnalysis):
         self.support_map = [self.atoms.index(i) for i in self.supported_atoms]
 
     def aggregate(self, current_clusters: List[int]):
-        aggregation_map = OneHotEncoder(sparse=False, dtype=int).fit_transform(
-            np.array(current_clusters).reshape(-1, 1)
-        )
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            aggregation_map = OneHotEncoder(sparse=False, dtype=int).fit_transform(
+                np.array(current_clusters).reshape(-1, 1)
+            )
         C = aggregation_map.T
         return C.dot(self.features).dot(C.T), aggregation_map
 

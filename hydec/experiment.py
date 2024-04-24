@@ -16,9 +16,9 @@ from .dataHandler import DataHandler
 class Experiment:
     def __init__(self, app: str, hyperparams: Dict, app_repo: str = "", name_append: Union[str, None] = None,
                  include_metadata: bool = True, save_output: bool = False, decomp_approach: str = "hyDec",
-                 granularity: str = "class", is_distributed: bool = False):
+                 granularity: str = "class", is_distributed: bool = False, use_parsing_module: bool = True,
+                 data_path: Union[str, None] = None, *args, **kwargs):
         self.app = app
-        self.app_repo = app_repo
         self.hyperparams = hyperparams
         self.save_output = save_output
         start_date = datetime.datetime.now()
@@ -30,7 +30,7 @@ class Experiment:
             if not os.path.exists(self.output_path):
                 os.makedirs(self.output_path, exist_ok=True)
         logging.config.fileConfig(
-            os.path.join(os.curdir, "utils", 'logging.conf')
+            os.path.join(os.path.dirname(__file__), "utils", 'logging.conf')
         )
         self.experiment_metadata = dict()
         self.experiment_metadata["experiment_id"] = self.experiment_id
@@ -44,7 +44,8 @@ class Experiment:
         self.epsilons = list()
         self.logger = logging.getLogger('Experiment')
         self.include_metadata = include_metadata
-        self.data_handler = DataHandler(self.app, self.app_repo, granularity=granularity, is_distributed=is_distributed)
+        self.data_handler = DataHandler(self.app, app_repo, granularity=granularity, is_distributed=is_distributed,
+                                        use_module=use_parsing_module, data_path=data_path, *args, **kwargs)
         self.atoms = self.data_handler.get_atoms(self.hyperparams["clustering"])
 
     def run(self) -> Tuple[Union[List[np.ndarray], List[List[int]]], List, Union[None, Dict]]:

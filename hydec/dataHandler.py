@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Dict, List, Callable
+from typing import Dict, List, Callable, Union
 
 import numpy as np
 import pandas as pd
@@ -10,6 +10,7 @@ from .analysis.dependencyAnalysis import DependencyAnalysis
 from .analysis.sumAnalysis import SumAnalysis
 from .analysis.tfidfAnalysis import TfidfAnalysis
 from .clients.parsingClient import ParsingClient
+from .clients.decParsingClient import DecParsingClient
 
 
 class DataHandler:
@@ -21,12 +22,25 @@ class DataHandler:
         "semantic": {"features": "{}_tfidf.npy", "atoms": "{}_names.json", "tokens": "{}_words.json"},
     }
 
-    def __init__(self, app_name: str, app_repo: str = "", granularity: str = "class", is_distributed: bool = False):
+    def __init__(self, app_name: str, app_repo: str = "", granularity: str = "class", is_distributed: bool = False,
+                 use_module: bool = True, data_path: Union[str, None] = None, *args, **kwargs):
         assert granularity in ["class", "method"]
         self.app_name = app_name
         self.app_repo = app_repo
+        self.data_path = data_path if data_path is not None else os.path.join(self.DATA_PATH, self.app_name.lower())
         self.granularity = granularity
-        self.parsing_client = ParsingClient(app_name, app_repo, granularity=granularity, is_distributed=is_distributed)
+        if use_module:
+            try:
+                import decparsing
+                self.parsing_client = DecParsingClient(app_name, app_repo, granularity=granularity,
+                                                       is_distributed=is_distributed, *args, **kwargs)
+            except ImportError:
+                print("Warning: decparsing module not found, using the parsing grpc client instead!")
+                self.parsing_client = ParsingClient(app_name, app_repo, granularity=granularity,
+                                                    is_distributed=is_distributed, *args, **kwargs)
+        else:
+            self.parsing_client = ParsingClient(app_name, app_repo, granularity=granularity,
+                                                is_distributed=is_distributed, *args, **kwargs)
 
     def load_dyn_analysis(self, hyperparams: Dict, all_atoms: List[str]) -> AbstractAnalysis:
         # TODO add support for method level analysis in local data
@@ -34,12 +48,12 @@ class DataHandler:
             with open(hyperparams["atoms_path"], "r") as f:
                 dyn_classes = json.load(f)
             features = np.load(hyperparams["features_path"])
-        elif os.path.exists(os.path.join(self.DATA_PATH, self.app_name.lower(), "dynamic")):
+        elif os.path.exists(os.path.join(self.data_path, "dynamic")):
             local_features = os.path.join(
-                self.DATA_PATH, self.app_name.lower(), "dynamic", self.DEFAULTS["dynamic"]["features"].format(
+                self.data_path, "dynamic", self.DEFAULTS["dynamic"]["features"].format(
                     self.granularity))
             local_atoms = os.path.join(
-                self.DATA_PATH, self.app_name.lower(), "dynamic", self.DEFAULTS["dynamic"]["atoms"].format(
+                self.data_path, "dynamic", self.DEFAULTS["dynamic"]["atoms"].format(
                     self.granularity))
             with open(local_atoms, "r") as f:
                 dyn_classes = json.load(f)
@@ -55,12 +69,12 @@ class DataHandler:
             with open(hyperparams["atoms_path"], "r") as f:
                 str_classes = json.load(f)
             features = np.load(hyperparams["features_path"])
-        elif os.path.exists(os.path.join(self.DATA_PATH, self.app_name.lower(), "structural")):
+        elif os.path.exists(os.path.join(self.data_path, "structural")):
             local_features = os.path.join(
-                self.DATA_PATH, self.app_name.lower(), "structural", self.DEFAULTS["structural"]["features"].format(
+                self.data_path, "structural", self.DEFAULTS["structural"]["features"].format(
                     self.granularity))
             local_atoms = os.path.join(
-                self.DATA_PATH, self.app_name.lower(), "structural", self.DEFAULTS["structural"]["atoms"].format(
+                self.data_path, "structural", self.DEFAULTS["structural"]["atoms"].format(
                     self.granularity))
             with open(local_atoms, "r") as f:
                 str_classes = json.load(f)
@@ -70,7 +84,6 @@ class DataHandler:
                 str_classes = self.parsing_client.get_names()
                 features = self.parsing_client.get_calls()
             except Exception as e:
-                print(e)
                 raise ValueError("Structural analysis data not found anywhere!")
         structural_analysis = DependencyAnalysis(features, all_atoms, str_classes, similarity=hyperparams["similarity"])
         return structural_analysis
@@ -83,15 +96,15 @@ class DataHandler:
             # with open(hyperparams["atoms_tokens"], "r") as f:
             #     class_tokens = json.load(f)
             features = np.load(hyperparams["features_path"])
-        elif os.path.exists(os.path.join(self.DATA_PATH, self.app_name.lower(), "semantic")):
+        elif os.path.exists(os.path.join(self.data_path, "semantic")):
             local_features = os.path.join(
-                self.DATA_PATH, self.app_name.lower(), "semantic", self.DEFAULTS["semantic"]["features"].format(
+                self.data_path, "semantic", self.DEFAULTS["semantic"]["features"].format(
                     self.granularity))
             local_atoms = os.path.join(
-                self.DATA_PATH, self.app_name.lower(), "semantic", self.DEFAULTS["semantic"]["atoms"].format(
+                self.data_path, "semantic", self.DEFAULTS["semantic"]["atoms"].format(
                     self.granularity))
             # local_tokens = os.path.join(
-            #     self.DATA_PATH, self.app_name.lower(), "semantic", self.DEFAULTS["semantic"]["tokens"])
+            #     self.data_path, "semantic", self.DEFAULTS["semantic"]["tokens"])
             with open(local_atoms, "r") as f:
                 sem_classes = json.load(f)
             features = np.load(local_features)
@@ -102,7 +115,6 @@ class DataHandler:
                 sem_classes = self.parsing_client.get_names()
                 features = self.parsing_client.get_tfidf()
             except Exception as e:
-                print(e)
                 raise ValueError("Semantic analysis data not found anywhere!")
         semantic_analysis = TfidfAnalysis(features, all_atoms, sem_classes, aggregation=hyperparams["aggregation"])
         return semantic_analysis
@@ -136,9 +148,9 @@ class DataHandler:
     def get_atoms(self, hyperparams: Dict) -> List[str]:
         if "atoms" in hyperparams:
             atoms = hyperparams["atoms"]
-        elif os.path.exists(os.path.join(self.DATA_PATH, self.app_name.lower(), "semantic")):
+        elif os.path.exists(os.path.join(self.data_path, "semantic")):
             local_atoms = os.path.join(
-                self.DATA_PATH, self.app_name.lower(), "semantic",
+                self.data_path, "semantic",
                 self.DEFAULTS["semantic"]["atoms"].format(self.granularity)
             )
             with open(local_atoms, "r") as f:
