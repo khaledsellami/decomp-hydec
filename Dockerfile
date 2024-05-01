@@ -5,7 +5,9 @@ COPY protos/ /protos/
 WORKDIR /service
 COPY . .
 RUN python -m pip install --upgrade pip
-RUN python -m pip install -r requirements.txt
+RUN python -m pip install .
+RUN rm -rf hydec
+#RUN python -m pip install -r requirements.txt
 
 EXPOSE 50055
 ENTRYPOINT [ "python", "main.py" ]

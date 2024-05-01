@@ -1,5 +1,6 @@
 import json
 import os
+import logging
 from typing import Dict, List, Callable, Union
 
 import numpy as np
@@ -29,13 +30,14 @@ class DataHandler:
         self.app_repo = app_repo
         self.data_path = data_path if data_path is not None else os.path.join(self.DATA_PATH, self.app_name.lower())
         self.granularity = granularity
+        self.logger = logging.getLogger(self.__class__.__name__)
         if use_module:
             try:
                 import decparsing
                 self.parsing_client = DecParsingClient(app_name, app_repo, granularity=granularity,
                                                        is_distributed=is_distributed, *args, **kwargs)
             except ImportError:
-                print("Warning: decparsing module not found, using the parsing grpc client instead!")
+                self.logger.warning("decparsing module not found, using the parsing grpc client instead!")
                 self.parsing_client = ParsingClient(app_name, app_repo, granularity=granularity,
                                                     is_distributed=is_distributed, *args, **kwargs)
         else:
@@ -59,6 +61,7 @@ class DataHandler:
                 dyn_classes = json.load(f)
             features = np.load(local_features)
         else:
+            self.logger.error("Dynamic analysis data not found in input nor locally!")
             raise ValueError("Dynamic analysis data not found in input nor locally!")
         dynamic_analysis = DependencyAnalysis(features, all_atoms, dyn_classes, similarity=hyperparams["similarity"])
         return dynamic_analysis
@@ -84,6 +87,7 @@ class DataHandler:
                 str_classes = self.parsing_client.get_names()
                 features = self.parsing_client.get_calls()
             except Exception as e:
+                self.logger.error("Structural analysis data not found anywhere!")
                 raise ValueError("Structural analysis data not found anywhere!")
         structural_analysis = DependencyAnalysis(features, all_atoms, str_classes, similarity=hyperparams["similarity"])
         return structural_analysis
@@ -115,6 +119,7 @@ class DataHandler:
                 sem_classes = self.parsing_client.get_names()
                 features = self.parsing_client.get_tfidf()
             except Exception as e:
+                self.logger.error("Semantic analysis data not found anywhere!")
                 raise ValueError("Semantic analysis data not found anywhere!")
         semantic_analysis = TfidfAnalysis(features, all_atoms, sem_classes, aggregation=hyperparams["aggregation"])
         return semantic_analysis
@@ -142,6 +147,7 @@ class DataHandler:
         elif analysis_name == "sum":
             analysis_func = self.load_sum_analysis
         else:
+            self.logger.error("Unrecognized analysis approach '{}'!".format(analysis_name))
             raise ValueError("Unrecognized analysis approach '{}'!".format(analysis_name))
         return analysis_func
 
@@ -159,7 +165,8 @@ class DataHandler:
             try:
                 atoms = self.parsing_client.get_names()
             except Exception as e:
-                print(e)
+                self.logger.debug(e)
+                self.logger.error("Failed to retrieve the list of classes or methods!")
                 raise ValueError("Failed to retrieve the list of classes or methods!")
         return atoms
 
@@ -182,6 +189,7 @@ def save_data(data: pd.DataFrame, save_path: str, analysis_type: str = "dynamic"
         with open(os.path.join(path, DataHandler.DEFAULTS[analysis_type]["atoms"]), "w") as f:
             json.dump(names, f)
     else:
+        logging.getLogger(__name__).error(f"Unknown analysis type {analysis_type}!")
         raise ValueError(f"Unknown analysis type {analysis_type}!")
     return path
 
