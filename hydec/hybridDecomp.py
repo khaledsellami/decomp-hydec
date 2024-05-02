@@ -1,4 +1,5 @@
 from typing import List
+import logging
 
 import numpy as np
 from sklearn.cluster import DBSCAN
@@ -40,6 +41,7 @@ class HybridDecomp:
         if strategy not in self.ALLOWED_STRATEGIES:
             raise ValueError("Unrecognized strategy {}. Possible strategies are {}".format(strategy,
                                                                                            self.ALLOWED_STRATEGIES))
+        self.logger = logging.getLogger("hydec")
         self.analysis_pipeline = analysis_pipeline
         self.atoms = atoms
         if epsilons is None:
@@ -47,6 +49,9 @@ class HybridDecomp:
         self.epsilons = epsilons
         self.max_iterations = max_iterations
         self.min_samples = min_samples
+        if not isinstance(min_samples, int):
+            self.logger.warning("min_samples must be an integer. Converting to int.")
+            self.min_samples = int(min_samples)
         self.strategy = strategy
         self.epsilon_step = epsilon_step
         self.include_outliers = include_outliers
