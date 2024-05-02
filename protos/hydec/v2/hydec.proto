@@ -6,7 +6,7 @@ option java_outer_classname = "HyDecProto";
 option objc_class_prefix = "HyD";
 
 package hydec;
-// Version 1
+// Version 2
 
 
 service HyDec {
