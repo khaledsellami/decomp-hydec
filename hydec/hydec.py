@@ -15,7 +15,8 @@ APPROACH_PIPELINES = {
 }
 
 
-def generate_decomposition(app: str, app_repo: str = None, decomp_approach: str = "hyDec", hyperparams_path: str = None,
+def generate_decomposition(app: str, app_repo: str = None, decomp_approach: str = "hyDec",
+                           hyperparams_path: Union[str, Dict, None] = None,
                            structural_path: str = None, semantic_path: str = None, dynamic_path: str = None,
                            include_metadata: bool = False, save_output: bool = False, granularity: str = "class",
                            is_distributed: bool = False, use_parsing_module: bool = True,
@@ -26,8 +27,11 @@ def generate_decomposition(app: str, app_repo: str = None, decomp_approach: str 
     analysis_pipeline = APPROACH_PIPELINES[decomp_approach]
     if hyperparams_path is not None:
         default_hps = get_default_hyperparams()
-        with open(hyperparams_path, "r") as f:
-            hyperparams = json.load(f)
+        if isinstance(hyperparams_path, str):
+            with open(hyperparams_path, "r") as f:
+                hyperparams = json.load(f)
+        else:
+            hyperparams = hyperparams_path
         hyperparams = merge_input(hyperparams, default_hps)
     else:
         default_hps = get_default_hyperparams()

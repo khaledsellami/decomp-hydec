@@ -1,0 +1,102 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.decomp.hydec";
+option java_outer_classname = "HyDecProto";
+option objc_class_prefix = "HyD";
+
+package hydec;
+// Version 3
+
+import "google/protobuf/struct.proto";
+
+
+service HyDec {
+  rpc getDecomposition (DecompRequest) returns (Decomposition) {};
+  rpc getLayers (DecompRequest) returns (DecompositionLayers) {};
+  rpc getDecompositionWithFile (stream DecompFileRequest) returns (Decomposition) {};
+  rpc getLayersWithFile (stream DecompFileRequest) returns (DecompositionLayers) {};
+}
+
+enum ApproachVersion {
+  hyDec = 0;
+  hierDec = 1;
+}
+
+message DecompRequest {
+  string appName = 1;
+  string language = 2;
+  Granularity level = 3;
+  string appRepo = 4;
+  ApproachVersion decompApproach = 5;
+  optional string hyperparams_path = 6;
+  optional string structural_path = 7;
+  optional string dynamic_path = 8;
+  optional string semantic_path = 9;
+  optional bool isDistributed = 10;
+  optional google.protobuf.Struct hyperparams = 11;
+}
+
+message DecompFileRequest {
+  oneof request {
+    MetaData metadata = 1;
+    bytes file = 2;
+  }
+}
+
+message MetaData {
+  DecompRequest decomp_request = 1;
+  string name = 2;
+  Format format = 3;
+  int64 column_index = 4;
+  int64 row_index = 5;
+  optional string column_name = 6;
+  optional string row_name = 7;
+  AnalysisType analysisType = 8;
+}
+
+enum AnalysisType {
+  STRUCTURAL = 0;
+  DYNAMIC = 1;
+  SEMANTIC = 2;
+}
+
+enum Format {
+  PARQUET = 0;
+  CSV = 1;
+  JSON = 2;
+  PICKLE = 3;
+}
+
+message DecompositionLayers {
+  repeated string names = 1;
+  repeated DecompositionLayer layers = 2;
+  Decomposition final_decomposition = 3;
+}
+
+message DecompositionLayer {
+  string name = 1;
+  repeated uint32 decomposition = 2;
+}
+
+message Partition {
+  string name = 1;
+  repeated string classes = 2;
+}
+
+message Decomposition {
+  string name = 1;
+  string appName = 2;
+  string language = 3;
+  string level = 4;
+  repeated Partition partitions = 5;
+  string appRepo = 6;
+}
+
+
+enum Granularity{
+  CLASS = 0;
+  METHOD = 1;
+}
+
+
