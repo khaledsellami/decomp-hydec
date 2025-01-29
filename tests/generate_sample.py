@@ -5,7 +5,7 @@ import dill as pickle
 import numpy as np
 
 from hydec import generate_decomposition
-from models import Partition, Granularity, Decomposition, DecompositionLayer, DecompositionLayers
+from hydec.models import Partition, Granularity, Decomposition, DecompositionLayer, DecompositionLayers
 
 
 def parse_layer(layer, names):

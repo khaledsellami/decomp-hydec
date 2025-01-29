@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from analysis.abstractAnalysis import AbstractAnalysis
+from hydec.analysis.abstractAnalysis import AbstractAnalysis
 
 
 class TestAbstractAnalysis(unittest.TestCase):

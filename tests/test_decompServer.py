@@ -9,9 +9,9 @@ import grpc
 import numpy as np
 import pandas as pd
 
-from models.hydec_pb2 import DecompRequest, DecompFileRequest, Granularity, ApproachVersion, Decomposition, MetaData, \
+from hydec.models.hydec_pb2 import DecompRequest, DecompFileRequest, Granularity, ApproachVersion, Decomposition, MetaData, \
     Format, AnalysisType
-from models.hydec_pb2_grpc import HyDecStub
+from hydec.models.hydec_pb2_grpc import HyDecStub
 
 
 TEST_APP = "petclinic-legacy"
